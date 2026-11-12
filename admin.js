@@ -1,38 +1,32 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-const cfg = window.WOC_CONFIG || {};
-const $ = id => document.getElementById(id);
-const status = text => { $('status').textContent = text; };
-if (!/^https:\/\//.test(cfg.supabaseUrl || '') || !cfg.supabasePublishableKey) throw new Error('Configure config.js first');
-const supabase = createClient(cfg.supabaseUrl, cfg.supabasePublishableKey);
-let session = null;
-let registeredUnixes = [];
-function show(value){session=value;$('auth-panel').hidden=!!value;$('dashboard').hidden=!value;if(value)refresh();else{registeredUnixes=[];renderUnixList();}}
-async function call(action,extra={}) {
-  const {data:{session:current}}=await supabase.auth.getSession();
-  if(!current){show(null);throw Error('Please sign in again.');}
-  const response=await fetch(`${cfg.supabaseUrl.replace(/\/$/,'')}/functions/v1/manage-unixes`,{
-    method:'POST',headers:{'Content-Type':'application/json','apikey':cfg.supabasePublishableKey,'Authorization':`Bearer ${current.access_token}`},body:JSON.stringify({action,...extra})
-  });
-  const body=await response.json().catch(()=>({}));
-  if(!response.ok)throw Error(body.error||`Request failed (${response.status})`);
-  return body;
+const cfg=window.WOC_CONFIG||{};
+const $=id=>document.getElementById(id);
+const status=text=>{$('status').textContent=text;};
+if(!/^https:\/\//.test(cfg.supabaseUrl||'')||!cfg.supabasePublishableKey)throw Error('Configure config.js first');
+const supabase=createClient(cfg.supabaseUrl,cfg.supabasePublishableKey);
+let registeredUnixes=[],candidates=[];
+function show(value){$('auth-panel').hidden=!!value;$('dashboard').hidden=!value;if(value)refreshAll();else{registeredUnixes=[];candidates=[];renderUnixList();renderCandidates();}}
+async function callFunction(fn,action,extra={}){
+ const {data:{session}}=await supabase.auth.getSession();
+ if(!session){show(null);throw Error('Please sign in again.');}
+ const response=await fetch(`${cfg.supabaseUrl.replace(/\/$/,'')}/functions/v1/${fn}`,{method:'POST',headers:{'Content-Type':'application/json','apikey':cfg.supabasePublishableKey,'Authorization':`Bearer ${session.access_token}`},body:JSON.stringify({action,...extra})});
+ const body=await response.json().catch(()=>({}));if(!response.ok)throw Error(body.error||`Request failed (${response.status})`);return body;
 }
-function renderUnixList(){
-  const term=$('unix-search').value.trim().toLowerCase();
-  const filtered=registeredUnixes.filter(unix=>unix.toLowerCase().includes(term));
-  $('unix-list-status').textContent=`${filtered.length} of ${registeredUnixes.length} unixes shown`;
-  const tbody=$('unix-list');tbody.replaceChildren();
-  for(const unix of filtered){
-    const tr=document.createElement('tr'),name=document.createElement('td'),action=document.createElement('td'),button=document.createElement('button');
-    name.textContent=unix;button.type='button';button.textContent='Remove';button.className='danger';
-    button.onclick=async()=>{if(!confirm(`Remove unix ${unix}?`))return;button.disabled=true;try{await call('remove',{unix});await refresh();status(`Unix ${unix} removed.`);}catch(e){status(e.message);button.disabled=false;}};
-    action.appendChild(button);tr.append(name,action);tbody.appendChild(tr);
-  }
-}
-async function refresh(){try{const data=await call('list');registeredUnixes=data.unixes||[];$('count').textContent=`${data.count??registeredUnixes.length} registered unixes`;renderUnixList();status('');}catch(e){status(e.message);$('unix-list-status').textContent='Unable to load registered unixes.';}}
-$('unix-search').addEventListener('input',renderUnixList);
+const call=(action,extra)=>callFunction('manage-unixes',action,extra);
+const candidateCall=(action,extra)=>callFunction('manage-candidates',action,extra);
+function renderUnixList(){const term=$('unix-search').value.trim().toLowerCase();const filtered=registeredUnixes.filter(unix=>unix.toLowerCase().includes(term));$('unix-list-status').textContent=`${filtered.length} of ${registeredUnixes.length} unixes shown`;const tbody=$('unix-list');tbody.replaceChildren();for(const unix of filtered){const tr=document.createElement('tr'),name=document.createElement('td'),action=document.createElement('td'),button=document.createElement('button');name.textContent=unix;button.type='button';button.textContent='Remove';button.className='danger';button.onclick=async()=>{if(!confirm(`Remove unix ${unix}?`))return;button.disabled=true;try{await call('remove',{unix});await refreshUnixes();status(`Unix ${unix} removed.`);}catch(e){status(e.message);button.disabled=false;}};action.appendChild(button);tr.append(name,action);tbody.appendChild(tr);}}
+async function refreshUnixes(){const data=await call('list');registeredUnixes=data.unixes||[];$('count').textContent=`${data.count??registeredUnixes.length} registered unixes`;renderUnixList();}
+async function refreshCandidates(){const data=await candidateCall('list');candidates=data.candidates||[];$('seats').value=data.seats??10;renderCandidates();}
+async function refreshAll(){status('Loading…');const results=await Promise.allSettled([refreshUnixes(),refreshCandidates()]);const errors=results.filter(r=>r.status==='rejected').map(r=>r.reason.message);status(errors.join(' | '));}
+function resetCandidateForm(){$('candidate-form').reset();$('candidate-id').value='';$('candidate-save').textContent='Add candidate';$('candidate-cancel').hidden=true;}
+function makeButton(text,fn,cls='secondary'){const b=document.createElement('button');b.type='button';b.textContent=text;b.className=cls;b.onclick=fn;return b;}
+function renderCandidates(){const term=$('candidate-search').value.trim().toLowerCase();const order=$('candidate-order').value;const items=[...candidates].filter(c=>(c.name+' '+c.profile).toLowerCase().includes(term));if(order==='alphabetical')items.sort((a,b)=>a.name.localeCompare(b.name));else items.sort((a,b)=>a.position-b.position);$('candidate-count').textContent=`${items.length} of ${candidates.length} candidates shown`;const root=$('candidate-list');root.replaceChildren();if(!items.length){const p=document.createElement('p');p.className='hint';p.textContent='No candidates to display.';root.append(p);}for(const c of items){const card=document.createElement('article');card.className='candidate-card';const h=document.createElement('h3');h.textContent=c.name;const p=document.createElement('p');p.textContent=c.profile;const actions=document.createElement('div');actions.className='candidate-actions';actions.append(makeButton('Edit',()=>{$('candidate-id').value=c.id;$('candidate-name').value=c.name;$('candidate-profile').value=c.profile;$('candidate-save').textContent='Save changes';$('candidate-cancel').hidden=false;$('candidate-name').focus();}));const del=makeButton('Remove',async()=>{if(!confirm(`Remove candidate ${c.name}?`))return;try{await candidateCall('remove',{id:c.id});await refreshCandidates();status('Candidate removed.');}catch(e){status(e.message);}},'danger');actions.append(del);if(order==='manual'&&!term){const idx=[...candidates].sort((a,b)=>a.position-b.position).findIndex(x=>x.id===c.id);const up=makeButton('Move up',()=>move(c.id,-1));const down=makeButton('Move down',()=>move(c.id,1));up.disabled=idx===0;down.disabled=idx===candidates.length-1;actions.append(up,down);}card.append(h,p,actions);root.append(card);}}
+async function move(id,direction){const ordered=[...candidates].sort((a,b)=>a.position-b.position).map(c=>c.id);const i=ordered.indexOf(id),j=i+direction;if(j<0||j>=ordered.length)return;[ordered[i],ordered[j]]=[ordered[j],ordered[i]];try{await candidateCall('reorder',{ids:ordered});await refreshCandidates();status('Candidate order saved.');}catch(e){status(e.message);}}
+$('unix-search').addEventListener('input',renderUnixList);$('candidate-search').addEventListener('input',renderCandidates);$('candidate-order').addEventListener('change',renderCandidates);
 $('login-form').addEventListener('submit',async e=>{e.preventDefault();status('Signing in…');const {data,error}=await supabase.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});if(error){status(error.message);return;}$('password').value='';show(data.session);});
-$('signout').onclick=async()=>{await supabase.auth.signOut();show(null);status('Signed out.');};
-$('refresh').onclick=refresh;
-$('single-form').onsubmit=async e=>{e.preventDefault();try{await call('add',{unixes:[$('single').value.trim()]});$('single').value='';await refresh();status('Unix added.');}catch(e){status(e.message);}};
+$('signout').onclick=async()=>{await supabase.auth.signOut();show(null);status('Signed out.');};$('refresh').onclick=refreshAll;
+$('single-form').onsubmit=async e=>{e.preventDefault();try{await call('add',{unixes:[$('single').value.trim()]});$('single').value='';await refreshUnixes();status('Unix added.');}catch(e){status(e.message);}};
+$('candidate-form').onsubmit=async e=>{e.preventDefault();const id=$('candidate-id').value;const name=$('candidate-name').value.trim(),profile=$('candidate-profile').value.trim();if(!name||!profile)return;try{await candidateCall(id?'update':'add',{...(id?{id}:{}),name,profile});resetCandidateForm();await refreshCandidates();status(id?'Candidate updated.':'Candidate added.');}catch(e){status(e.message);}};
+$('candidate-cancel').onclick=resetCandidateForm;
+$('seats-form').onsubmit=async e=>{e.preventDefault();try{await candidateCall('seats',{seats:Number($('seats').value)});status('Board seat count saved.');}catch(e){status(e.message);}};
 const {data:{session:initial}}=await supabase.auth.getSession();show(initial);
