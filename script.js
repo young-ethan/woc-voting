@@ -26,7 +26,7 @@ form.addEventListener('submit', async (event) => {
     if (!response.ok) throw new Error('Validation service unavailable');
     const result = await response.json();
     if (result.valid === true) { loginCard.hidden = true; successCard.hidden = false; input.value = ''; }
-    else showMessage('Unix not recognised. Please check it and try again.');
+    else showMessage('Unix not recognized. Please check it and try again.');
   } catch (_) { showMessage('Unable to check your unix right now. Please try again later.'); }
   finally { submit.disabled = false; submit.innerHTML = 'Access ballot <span aria-hidden="true">→</span>'; }
 });
