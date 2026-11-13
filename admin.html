@@ -1,23 +1,18 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WOC | Admin Dashboard</title>
-<link rel="stylesheet" href="admin.css">
-</head>
-<body>
-<header><h1>WOC Admin</h1><p>Election management</p></header>
-<main>
-<p id="status" role="status" aria-live="polite"></p>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>WOC | Admin Dashboard</title><link rel="stylesheet" href="admin.css"><style>
+[hidden]{display:none!important}
+.overview-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:18px}
+.overview-stat{background:#f2f6f3;border:1px solid #dce5dc;border-radius:12px;padding:20px}
+.overview-stat h3{margin:0 0 10px;color:#52695b;font-size:.95rem}
+.overview-stat .count{font-size:1.8rem;font-weight:700;color:#234638}
+@media(max-width:600px){.overview-stats{grid-template-columns:1fr}}
+</style></head><body>
+<header><h1>WOC Admin</h1><p>Election management</p></header><main><p id="status" role="status" aria-live="polite"></p>
 <section class="panel" id="auth-panel"><h2>Administrator sign in</h2><form id="login-form"><label for="email">Email</label><input id="email" type="email" autocomplete="username" required><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required><button>Sign in</button></form></section>
 <div id="dashboard" hidden>
-<section class="panel"><div class="flex"><div><h2>Dashboard overview</h2><div class="count" id="count">Loading…</div></div><div><button class="secondary" id="refresh">Refresh</button><button class="secondary" id="signout">Sign out</button></div></div></section>
+<section class="panel"><div class="flex"><div><h2>Dashboard overview</h2></div><div><button class="secondary" id="refresh">Refresh</button><button class="secondary" id="signout">Sign out</button></div></div><div class="overview-stats"><div class="overview-stat"><h3>Registered Voters</h3><div class="count" id="count">Loading…</div></div><div class="overview-stat"><h3>Registered Candidates</h3><div class="count" id="candidate-total">Loading…</div></div></div></section>
 <section class="panel"><h2>Add a Unix</h2><form id="single-form"><label for="single">Unix</label><input id="single" required pattern="[a-z0-9]{4,32}" placeholder="e.g. ejy2"><button>Add unix</button></form></section>
 <section class="panel"><h2>Registered Unixes</h2><label for="unix-search">Search registered unixes</label><input id="unix-search" type="search" placeholder="Search unixes…"><p id="unix-list-status" role="status"></p><div class="tablewrap"><table><thead><tr><th>Unix</th><th>Action</th></tr></thead><tbody id="unix-list"></tbody></table></div></section>
-<section class="panel"><h2>Board election settings</h2><form id="seats-form"><label for="seats">Available board seats (n)</label><div class="seat-stepper"><button type="button" id="seats-minus" class="secondary seat-button" aria-label="Decrease available board seats">−</button><output id="seats-display" for="seats-minus seats-plus">10</output><button type="button" id="seats-plus" class="secondary seat-button" aria-label="Increase available board seats">+</button></div><input id="seats" type="hidden" value="10"><button id="seats-save" type="submit">Save seats</button><p id="seats-feedback" class="hint" role="status" aria-live="polite"></p></form><p class="hint">Number of new board members. Use + and − to change the number, then save.</p></section>
+<section class="panel"><h2>Board election settings</h2><form id="seats-form"><label for="seats-display">Available board seats (n)</label><div class="seat-stepper"><button type="button" id="seats-minus" class="secondary seat-button" aria-label="Decrease available board seats">−</button><output id="seats-display" for="seats-minus seats-plus">10</output><button type="button" id="seats-plus" class="secondary seat-button" aria-label="Increase available board seats">+</button></div><input id="seats" type="hidden" value="10"><button id="seats-save" type="submit">Save seats</button><p id="seats-feedback" class="hint" role="status" aria-live="polite"></p></form><p class="hint">Number of new board members. Use + and − to change the number, then save.</p></section>
 <section class="panel"><h2>Manage Candidates</h2><p class="hint">Enter the profile prepared by the Selection Committee.</p><form id="candidate-form"><input id="candidate-id" type="hidden"><label for="candidate-name">Candidate full name</label><input id="candidate-name" maxlength="150" required><label for="candidate-profile">Selection Committee profile</label><textarea id="candidate-profile" maxlength="10000" rows="6" required></textarea><button id="candidate-save">Add candidate</button><button id="candidate-cancel" type="button" class="secondary" hidden>Cancel edit</button></form><div class="flex"><div><h3>Registered candidates</h3><p id="candidate-count" class="hint"></p></div><div><label for="candidate-order">Candidate display order</label><select id="candidate-order"><option value="alphabetical">Alphabetical</option><option value="random">Randomized preview</option></select><button id="reshuffle" type="button" class="secondary" hidden>Shuffle again</button></div></div><p class="hint">Randomized preview only; the voter ballot will use its own ordering when built.</p><label for="candidate-search">Search candidates</label><input id="candidate-search" type="search" placeholder="Search names or profiles"><div id="candidate-list" class="candidate-list"></div></section>
-</div>
-</main>
-<script src="config.js"></script><script type="module" src="admin.js"></script>
-</body></html>
+</div></main><script src="config.js"></script><script type="module" src="admin.js"></script></body></html>
