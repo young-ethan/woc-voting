@@ -24,7 +24,11 @@ async function callFunction(fn,action,extra={}){
   body:JSON.stringify({action,...extra})
  });
  const body=await response.json().catch(()=>({}));
- if(response.status===401){clearToken();show(false);throw Error('Session expired. Please sign in again.');}
+ if (response.status === 401) {
+  throw Error(
+    body.error || 'Administrator session rejected by ' + fn
+  );
+}
  if(!response.ok)throw Error(body.error||`Request failed (${response.status})`);
  return body;
 }
