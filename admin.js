@@ -5,7 +5,7 @@ const status=text=>{$('status').textContent=text;};
 if(!/^https:\/\//.test(cfg.supabaseUrl||'')||!cfg.supabasePublishableKey)throw Error('Configure config.js first');
 const supabase=createClient(cfg.supabaseUrl,cfg.supabasePublishableKey);
 let registeredUnixes=[],candidates=[],randomOrder=[];
-function show(value){$('auth-panel').hidden=!!value;$('dashboard').hidden=!value;if(value)refreshAll();else{registeredUnixes=[];candidates=[];randomOrder=[];renderUnixList();renderCandidates();}}
+function show(value){$('auth-panel').hidden=!!value;$('dashboard').hidden=!value;if(value)refreshAll();else{registeredUnixes=[];candidates=[];randomOrder=[];$('count').textContent='—';$('candidate-total').textContent='—';renderUnixList();renderCandidates();}}
 async function callFunction(fn,action,extra={}){
  const {data:{session}}=await supabase.auth.getSession();
  if(!session){show(null);throw Error('Please sign in again.');}
@@ -15,23 +15,14 @@ async function callFunction(fn,action,extra={}){
 const call=(action,extra)=>callFunction('manage-unixes',action,extra);
 const candidateCall=(action,extra)=>callFunction('manage-candidates',action,extra);
 function renderUnixList(){const term=$('unix-search').value.trim().toLowerCase();const filtered=registeredUnixes.filter(unix=>unix.toLowerCase().includes(term));$('unix-list-status').textContent=`${filtered.length} of ${registeredUnixes.length} unixes shown`;const tbody=$('unix-list');tbody.replaceChildren();for(const unix of filtered){const tr=document.createElement('tr'),name=document.createElement('td'),action=document.createElement('td'),button=document.createElement('button');name.textContent=unix;button.type='button';button.textContent='Remove';button.className='danger';button.onclick=async()=>{if(!confirm(`Remove unix ${unix}?`))return;button.disabled=true;try{await call('remove',{unix});await refreshUnixes();status(`Unix ${unix} removed.`);}catch(e){status(e.message);button.disabled=false;}};action.appendChild(button);tr.append(name,action);tbody.appendChild(tr);}}
-async function refreshUnixes(){const data=await call('list');registeredUnixes=data.unixes||[];$('count').textContent=`${data.count??registeredUnixes.length} registered unixes`;renderUnixList();}
+async function refreshUnixes(){const data=await call('list');registeredUnixes=data.unixes||[];$('count').textContent=String(data.count??registeredUnixes.length);renderUnixList();}
 function setSeats(value){const n=Math.max(1,Math.min(100,Math.round(Number(value)||1)));$('seats').value=String(n);$('seats-display').textContent=String(n);$('seats-minus').disabled=n<=1;$('seats-plus').disabled=n>=100;$('seats-feedback').textContent='Unsaved changes';}
 function shuffleCandidates(){
-  const previous=randomOrder.join('|');
-  const ids=candidates.map(c=>c.id);
-  for(let attempt=0;attempt<8;attempt++){
-    randomOrder=[...ids];
-    for(let i=randomOrder.length-1;i>0;i--){
-      const j=Math.floor(Math.random()*(i+1));
-      [randomOrder[i],randomOrder[j]]=[randomOrder[j],randomOrder[i]];
-    }
-    if(randomOrder.join('|')!==previous)break;
-  }
-  if(ids.length>1 && randomOrder.join('|')===previous)randomOrder.reverse();
-  renderCandidates();
+ const previous=randomOrder.join('|');const ids=candidates.map(c=>c.id);
+ for(let attempt=0;attempt<8;attempt++){randomOrder=[...ids];for(let i=randomOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[randomOrder[i],randomOrder[j]]=[randomOrder[j],randomOrder[i]];}if(randomOrder.join('|')!==previous)break;}
+ if(ids.length>1&&randomOrder.join('|')===previous)randomOrder.reverse();renderCandidates();
 }
-async function refreshCandidates(){const data=await candidateCall('list');candidates=data.candidates||[];setSeats(data.seats??10);$('seats-feedback').textContent='Saved value loaded';shuffleCandidates();}
+async function refreshCandidates(){const data=await candidateCall('list');candidates=data.candidates||[];$('candidate-total').textContent=String(candidates.length);setSeats(data.seats??10);$('seats-feedback').textContent='Saved value loaded';shuffleCandidates();}
 async function refreshAll(){status('Loading…');const results=await Promise.allSettled([refreshUnixes(),refreshCandidates()]);const errors=results.filter(r=>r.status==='rejected').map(r=>r.reason.message);status(errors.join(' | '));}
 function resetCandidateForm(){$('candidate-form').reset();$('candidate-id').value='';$('candidate-save').textContent='Add candidate';$('candidate-cancel').hidden=true;}
 function makeButton(text,fn,cls='secondary'){const b=document.createElement('button');b.type='button';b.textContent=text;b.className=cls;b.onclick=fn;return b;}
