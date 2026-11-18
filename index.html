@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -5,59 +6,431 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#21433f">
   <title>WOC | Voting Portal</title>
+
   <link rel="stylesheet" href="style.css">
+
   <script src="config.js" defer></script>
+  <script src="results-core.js" defer></script>
   <script src="script.js" defer></script>
+
+  <style>
+    /* Election results */
+    .results-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 24px 0;
+    }
+
+    .results-summary > div {
+      background: #f2f6f3;
+      border: 1px solid #dce5dc;
+      border-radius: 10px;
+      padding: 16px 10px;
+      text-align: center;
+    }
+
+    .results-summary strong {
+      display: block;
+      color: #234638;
+      font-size: 1.8rem;
+    }
+
+    .results-summary span {
+      display: block;
+      margin-top: 5px;
+      color: #52695b;
+      font-size: 0.8rem;
+    }
+
+    .results-table-wrapper {
+      overflow-x: auto;
+      margin: 18px 0;
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .results-table th,
+    .results-table td {
+      padding: 12px 10px;
+      border-bottom: 1px solid #dce5dc;
+      text-align: left;
+    }
+
+    .results-table th {
+      background: #eef4ef;
+      color: #234638;
+      font-size: 0.85rem;
+    }
+
+    .results-ties {
+      margin-top: 24px;
+      padding: 16px;
+      border: 1px solid #d8c6a2;
+      border-radius: 10px;
+      background: #faf7ef;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (max-width: 600px) {
+      .results-summary {
+        gap: 6px;
+      }
+
+      .results-summary > div {
+        padding: 12px 5px;
+      }
+
+      .results-summary strong {
+        font-size: 1.4rem;
+      }
+
+      .results-table {
+        font-size: 0.85rem;
+      }
+    }
+  </style>
 </head>
+
 <body>
+
+  <!-- WOC HEADER -->
   <header class="site-header">
     <div class="header-inner">
-      <a class="brand" href="./" aria-label="WOC voting portal home"><img src="assets/woc-logo.png" alt="WOC logo"><span><strong>WOC</strong><small>Voting Portal</small></span></a>
-      <span class="header-tag">New Member Selection</span>
+
+      <a class="brand" href="./"
+         aria-label="WOC voting portal home">
+
+        <img src="assets/woc-logo.png" alt="WOC logo">
+
+        <span>
+          <strong>WOC</strong>
+          <small>Voting Portal</small>
+        </span>
+      </a>
+
+      <span class="header-tag">
+        New Member Selection
+      </span>
+
     </div>
   </header>
+
   <main>
-    <section class="hero" aria-label="WOC landscape photograph"><div class="hero-overlay"><p>WOC Board</p><h1>LEAF Voting Portal.</h1><span>Easy. Fair. Secure.</span></div></section>
-    <section class="login-section"><div class="login-card" id="login-card">
-      <div class="eyebrow">WELCOME</div>
-      <h2>Access your ballot</h2>
-      <p>Enter the unique unix to continue.</p>
-      <form id="unix-form"><label for="unix">Your unix</label><input id="unix" name="unix" type="text" placeholder="e.g. ejy2" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="64" required><button id="submit" type="submit">Access ballot <span aria-hidden="true">→</span></button></form>
-      <p class="message" id="message" role="status" aria-live="polite"></p>
-      <p class="fine-print">Your unix is unique to you. Please don't share it with others.</p>
-    </div>
-    <div class="login-card ballot-card" id="ballot-card" hidden>
-      <div class="ballot-top"><span class="eyebrow">WOC BOARD ELECTION</span><span id="ballot-progress-label"></span></div>
-      <div class="progress-track"><div id="ballot-progress-fill"></div></div>
-      <h2 id="candidate-name"></h2>
-      <p class="eyebrow">PROFILE</p>
-      <p id="candidate-profile" class="profile-text"></p>
-      <div class="rating-panel">
-        <div class="sapling" aria-hidden="true">
-          <svg viewBox="0 0 110 128" width="105" height="125">
-            <path d="M55 111 Q53 78 55 18" stroke="#597A4F" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-            <path class="leaf" d="M55 96 Q26 95 14 73 Q43 68 55 96"/>
-            <path class="leaf" d="M55 78 Q85 77 96 55 Q69 52 55 78"/>
-            <path class="leaf" d="M55 62 Q27 61 18 39 Q44 36 55 62"/>
-            <path class="leaf" d="M55 47 Q82 44 91 23 Q65 22 55 47"/>
-            <path class="leaf" d="M55 32 Q39 13 55 3 Q72 14 55 32"/>
-            <path d="M38 111 L72 111 L67 125 L43 125 Z" fill="#A97350"/>
-            <path d="M38 111 L72 111" stroke="#885D40" stroke-width="3" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="rating-copy"><p class="eyebrow">YOUR RATING</p><strong id="leaf-number">3 Leaves</strong><p id="rating-description">Neutral on this candidate</p></div>
+
+    <!-- LANDSCAPE BANNER -->
+    <section class="hero"
+             aria-label="WOC landscape photograph">
+
+      <div class="hero-overlay">
+        <p>WOC Board</p>
+        <h1>LEAF Voting Portal.</h1>
+        <span>Easy. Fair. Secure.</span>
       </div>
-      <label for="rating-slider">Rate this candidate from 1 to 5 leaves</label>
-      <input id="rating-slider" type="range" min="1" max="5" step="1" value="3">
-      <div class="slider-labels"><span>1 · No confidence</span><span>5 · High confidence</span></div>
-      <p class="fine-print">Select a rating to continue. Once submitted, you cannot go back or change it.</p>
-      <button id="rating-submit" type="button" disabled>Submit Rating &amp; Continue →</button>
-      <p id="ballot-message" class="message" role="status" aria-live="polite"></p>
-    </div>
-    <div class="login-card success-card" id="complete-card" hidden><div class="eyebrow">BALLOT COMPLETE</div><h2>Thank you for voting!</h2><p>All candidate ratings have been submitted.</p><button id="finish" type="button">Finish</button></div>
-    <div class="login-card success-card" id="closed-card" hidden><div class="eyebrow">ELECTION STATUS</div><h2>Voting is not currently open</h2><p>Please return when SelCom opens the election.</p><button id="closed-back" type="button">Back to login</button></div>
+
     </section>
+
+    <section class="login-section">
+
+      <!-- UNIX LOGIN -->
+      <div class="login-card" id="login-card">
+
+        <div class="eyebrow">WELCOME</div>
+
+        <h2>Access your ballot</h2>
+
+        <p>Enter the unique unix to continue.</p>
+
+        <form id="unix-form">
+
+          <label for="unix">Your unix</label>
+
+          <input
+            id="unix"
+            name="unix"
+            type="text"
+            placeholder="e.g. ejy2"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
+            maxlength="64"
+            required
+          >
+
+          <button id="submit" type="submit">
+            Access ballot
+            <span aria-hidden="true">→</span>
+          </button>
+
+        </form>
+
+        <p class="message"
+           id="message"
+           role="status"
+           aria-live="polite"></p>
+
+        <p class="fine-print">
+          Your unix is unique to you.
+          Please don't share it with others.
+        </p>
+
+      </div>
+
+      <!-- FIVE-LEAF BALLOT -->
+      <div class="login-card ballot-card"
+           id="ballot-card" hidden>
+
+        <div class="ballot-top">
+          <span class="eyebrow">
+            WOC BOARD ELECTION
+          </span>
+
+          <span id="ballot-progress-label"></span>
+        </div>
+
+        <div class="progress-track">
+          <div id="ballot-progress-fill"></div>
+        </div>
+
+        <h2 id="candidate-name"></h2>
+
+        <p class="eyebrow">PROFILE</p>
+
+        <p id="candidate-profile"
+           class="profile-text"></p>
+
+        <div class="rating-panel">
+
+          <div class="sapling" aria-hidden="true">
+
+            <svg viewBox="0 0 110 128"
+                 width="105"
+                 height="125">
+
+              <path
+                d="M55 111 Q53 78 55 18"
+                stroke="#597A4F"
+                stroke-width="3.5"
+                fill="none"
+                stroke-linecap="round"
+              />
+
+              <path class="leaf"
+                d="M55 96 Q26 95 14 73 Q43 68 55 96"/>
+
+              <path class="leaf"
+                d="M55 78 Q85 77 96 55 Q69 52 55 78"/>
+
+              <path class="leaf"
+                d="M55 62 Q27 61 18 39 Q44 36 55 62"/>
+
+              <path class="leaf"
+                d="M55 47 Q82 44 91 23 Q65 22 55 47"/>
+
+              <path class="leaf"
+                d="M55 32 Q39 13 55 3 Q72 14 55 32"/>
+
+              <path
+                d="M38 111 L72 111 L67 125 L43 125 Z"
+                fill="#A97350"
+              />
+
+              <path
+                d="M38 111 L72 111"
+                stroke="#885D40"
+                stroke-width="3"
+                stroke-linecap="round"
+              />
+
+            </svg>
+          </div>
+
+          <div class="rating-copy">
+
+            <p class="eyebrow">YOUR RATING</p>
+
+            <strong id="leaf-number">
+              3 Leaves
+            </strong>
+
+            <p id="rating-description">
+              Neutral on this candidate
+            </p>
+
+          </div>
+        </div>
+
+        <label for="rating-slider">
+          Rate this candidate from 1 to 5 leaves
+        </label>
+
+        <input
+          id="rating-slider"
+          type="range"
+          min="1"
+          max="5"
+          step="1"
+          value="3"
+        >
+
+        <div class="slider-labels">
+          <span>1 · No confidence</span>
+          <span>5 · High confidence</span>
+        </div>
+
+        <p class="fine-print">
+          Select a rating to continue.
+          Once submitted, you cannot go back
+          or change it.
+        </p>
+
+        <button id="rating-submit"
+                type="button" disabled>
+          Submit Rating &amp; Continue →
+        </button>
+
+        <p id="ballot-message"
+           class="message"
+           role="status"
+           aria-live="polite"></p>
+
+      </div>
+
+      <!-- BALLOT COMPLETE -->
+      <div class="login-card success-card"
+           id="complete-card" hidden>
+
+        <div class="eyebrow">
+          BALLOT COMPLETE
+        </div>
+
+        <h2>Thank you for voting!</h2>
+
+        <p>
+          All candidate ratings have been submitted.
+        </p>
+
+        <button id="finish" type="button">
+          Finish
+        </button>
+
+      </div>
+
+      <!-- ELECTION CLOSED -->
+      <div class="login-card success-card"
+           id="closed-card" hidden>
+
+        <div class="eyebrow">
+          ELECTION STATUS
+        </div>
+
+        <h2>Voting is not currently open</h2>
+
+        <p>
+          Please return when SelCom opens
+          the election.
+        </p>
+
+        <button id="closed-back" type="button">
+          Back to login
+        </button>
+
+      </div>
+
+      <!-- ELECTION RESULTS -->
+      <div class="login-card results-card"
+           id="results-card" hidden>
+
+        <div class="eyebrow">
+          WOC BOARD ELECTION
+        </div>
+
+        <h2>Election Results</h2>
+
+        <p>
+          Thank you for participating in the
+          WOC Board Election.
+          Below are the final results.
+        </p>
+
+        <div class="results-summary">
+
+          <div>
+            <strong id="results-voters">—</strong>
+            <span>Completed Ballots</span>
+          </div>
+
+          <div>
+            <strong id="results-candidates">—</strong>
+            <span>Candidates</span>
+          </div>
+
+          <div>
+            <strong id="results-seats">—</strong>
+            <span>Board Seats</span>
+          </div>
+
+        </div>
+
+        <h3>Candidate Rankings</h3>
+
+        <div class="results-table-wrapper">
+
+          <table class="results-table">
+
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Candidate</th>
+                <th>Average Leaves</th>
+                <th>Total Leaves</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+
+            <tbody id="results-list"></tbody>
+
+          </table>
+
+        </div>
+
+        <div id="results-ties"
+             class="results-ties" hidden>
+
+          <h3>Tiebreaker Information</h3>
+
+          <div id="results-tie-details"></div>
+
+        </div>
+
+        <p id="results-message"
+           class="message"
+           role="status"
+           aria-live="polite"></p>
+
+        <button id="results-finish"
+                type="button">
+          Finish
+        </button>
+
+      </div>
+
+    </section>
+
   </main>
-  <footer>Questions on the voting process? Reach out to the WOC Presidents, SelCom, or Ethan Young.</footer>
+
+  <!-- FOOTER -->
+  <footer>
+    Questions on the voting process?
+    Reach out to the WOC Presidents,
+    SelCom, or Ethan Young.
+  </footer>
+
 </body>
 </html>
