@@ -3,7 +3,7 @@ const cfg=window.WOC_CONFIG||{};
 const TOKEN_KEY='woc_voter_ballot_session';
 let token=sessionStorage.getItem(TOKEN_KEY),currentCandidate=null,selected=false;
 const descriptions=['No confidence in this candidate','Low confidence in this candidate','Neutral on this candidate','Confident in this candidate','High confidence in this candidate'];
-function screen(id){for(const name of ['login-card','ballot-card','complete-card','closed-card'])$(name).hidden=name!==id;}
+function screen(id){for(const name of ['login-card','ballot-card','complete-card','closed-card','results-card'])$(name).hidden=name!==id;}
 function message(text){$('message').textContent=text;}
 async function api(action,extra={},useToken=true){
  if(!/^https:\/\//.test(cfg.supabaseUrl||'')||!cfg.supabasePublishableKey)throw Error('Website connection is not configured.');
@@ -17,6 +17,7 @@ async function api(action,extra={},useToken=true){
 function ratingView(){const n=Number($('rating-slider').value);$('leaf-number').textContent=`${n} ${n===1?'Leaf':'Leaves'}`;$('rating-description').textContent=descriptions[n-1];document.querySelectorAll('.sapling .leaf').forEach((leaf,i)=>{leaf.style.opacity=i<n?'1':'.12'});$('rating-submit').disabled=!selected;}
 function renderBallot(ballot){
  if(!ballot||ballot.state==='closed'||ballot.state==='unavailable'){screen('closed-card');return;}
+ if(ballot.state==='results'){showResults(ballot.results);return;}
  if(ballot.state==='complete'){token=null;sessionStorage.removeItem(TOKEN_KEY);screen('complete-card');return;}
  if(ballot.state!=='ready'||!ballot.candidate){screen('closed-card');return;}
  currentCandidate=ballot.candidate;$('candidate-name').textContent=currentCandidate.name;$('candidate-profile').textContent=currentCandidate.profile;
@@ -37,5 +38,7 @@ $('rating-submit').addEventListener('click',async()=>{
  catch(err){$('ballot-message').textContent=err.message;if(err.status===401){token=null;sessionStorage.removeItem(TOKEN_KEY);screen('login-card');message('Session expired. Enter your unix to resume.');}else if(err.status===409){try{renderBallot((await api('next')).ballot);}catch{}}}
  finally{button.textContent='Submit Rating & Continue →';button.disabled=!selected;}
 });
+function showResults(data){window.WOC_RESULTS.render($('public-results'),data);token=null;sessionStorage.removeItem(TOKEN_KEY);screen('results-card');}
+$('results-back').onclick=()=>screen('login-card');
 $('finish').onclick=()=>screen('login-card');$('closed-back').onclick=()=>screen('login-card');
 if(token){api('next').then(r=>renderBallot(r.ballot)).catch(()=>{token=null;sessionStorage.removeItem(TOKEN_KEY);screen('login-card');});}
