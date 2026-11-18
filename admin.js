@@ -36,4 +36,28 @@ $('seats-form').onsubmit=async e=>{e.preventDefault();const button=$('seats-save
 $('save-order').onclick=async()=>{if(electionStatus!=='preparation')return;try{await candidateCall('save-order',{ids:displayedIds(),mode:$('candidate-order').value});await refreshCandidates();status('Ballot order saved.');}catch(e){status(e.message);}};
 $('open-voting').onclick=async()=>{if(!orderIsCurrent()||!confirm('OPEN VOTING? This permanently locks candidates, profiles, seat count and ballot order. Ballot submissions are not built yet.'))return;try{await candidateCall('open-voting');await refreshCandidates();status('Voting opened. Candidate information is locked.');}catch(e){status(e.message);}};
 $('close-voting').onclick=async()=>{if(!confirm('CLOSE VOTING permanently? You cannot reopen this election.'))return;try{await candidateCall('close-voting');await refreshCandidates();status('Voting closed permanently.');}catch(e){status(e.message);}};
+
+// Reset election control: shown only after voting has closed.
+const resetButton=document.createElement('button');
+resetButton.type='button';resetButton.id='reset-election';resetButton.className='danger';
+resetButton.textContent='Reset Election / Start New Cycle';
+const resetHelp=document.createElement('p');resetHelp.className='hint';
+resetHelp.textContent='Deletes all submitted ratings, returns to preparation, and invalidates old voter sessions. Registered voters and candidates are kept.';
+const resetContainer=document.createElement('div');resetContainer.id='reset-election-control';
+resetContainer.append(resetButton,resetHelp);
+const closeButton=$('close-voting');
+if(closeButton)closeButton.insertAdjacentElement('afterend',resetContainer);
+function updateResetControl(){resetContainer.hidden=electionStatus!=='closed';}
+resetButton.onclick=async()=>{
+ if(electionStatus!=='closed')return;
+ if(!confirm('START A NEW ELECTION CYCLE? All submitted leaf ratings will be permanently deleted. Registered voters and candidates will remain.'))return;
+ const confirmation=prompt('Type RESET ELECTION to permanently clear all ballot submissions:');
+ if(confirmation!=='RESET ELECTION'){status('Reset cancelled.');return;}
+ resetButton.disabled=true;status('Resetting election…');
+ try{await candidateCall('reset-election',{confirmation:'RESET ELECTION'});await refreshAll();status('Election reset. Old ballot sessions are invalid. You can edit and save the ballot order before reopening.');}
+ catch(e){status('Reset failed: '+e.message);}
+ finally{resetButton.disabled=false;}
+};
+const originalRenderElectionControls=renderElectionControls;
+renderElectionControls=function(){originalRenderElectionControls();updateResetControl();};
 show(!!adminToken);
